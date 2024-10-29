@@ -2,7 +2,7 @@ import asyncio
 import requests
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message
+from aiogram.types import Message, FSInputFile
 from config import TOKEN, POGODA, URL, URL_FORECAST
 import random
 from datetime import datetime, timedelta
@@ -79,7 +79,10 @@ async def hitext(message: Message):
 
 @dp.message(Command('help'))
 async def cmd_help(message: Message):
-    await message.answer("Я умею выполнять команды: \n /start \n /help \n /weather \n /cat")
+    await message.answer("Я умею выполнять команды: \n /start \n /help \n /weather \n /cat \n"
+                         "Принимаю и храню у себя все картинки, которые мне отправляют. \n"
+                         "Также я могу переводить текст на английский язык и говорить его голосом.")
+
 
 
 @dp.message(Command('weather'))
@@ -98,21 +101,22 @@ async def cmd_start(message: Message):
 
 @dp.message()
 async def translate_and_speak(message: Message):
+    await bot.send_chat_action(message.chat.id, 'upload_voice')
     # Перевод текста на английский
     translation = translator.translate(message.text, dest='en')
     translated_text = translation.text
 
     # Создание аудиофайла с переводом
-    tts = gTTS(translated_text, lang='en')
-    audio_file = f"audio_{message.message_id}.mp3"
-    tts.save(audio_file)
-
+    tts = gTTS(text=translated_text, lang='en')
+    voice_file = f"audio_{message.message_id}.ogg"
+    tts.save(voice_file)
+    voice_message = FSInputFile(voice_file)
     # Отправка переведенного текста и голосового сообщения
     await message.answer(translated_text)
-    await message.answer_voice(voice=open(audio_file, 'rb'))
+    await bot.send_voice(chat_id=message.chat.id, voice=voice_message)
 
     # Удаление временного аудиофайла
-    os.remove(audio_file)
+    os.remove(voice_file)
 
 
 async def main():
