@@ -6,6 +6,10 @@ from aiogram.types import Message
 from config import TOKEN, POGODA, URL, URL_FORECAST
 import random
 from datetime import datetime, timedelta
+from gtts import gTTS
+import os
+from googletrans import Translator
+
 
 
 bot = Bot(token=TOKEN)
@@ -14,6 +18,7 @@ dp = Dispatcher()
 API_KEY = POGODA
 WEATHER_URL = URL
 WEATHER_URL_FORECAST = URL_FORECAST
+translator = Translator()
 
 def get_weather(city: str, api_key: str) -> str:
     params = {
@@ -87,9 +92,28 @@ async def cmd_weather(message: Message):
 async def cmd_start(message: Message):
     await message.answer(f"Привет, {message.from_user.full_name}!")
 
+# @dp.message()
+# async def start(message: Message):
+#     await message.send_copy(chat_id=message.chat.id)
+
 @dp.message()
-async def start(message: Message):
-    await message.send_copy(chat_id=message.chat.id)
+async def translate_and_speak(message: Message):
+    # Перевод текста на английский
+    translation = translator.translate(message.text, dest='en')
+    translated_text = translation.text
+
+    # Создание аудиофайла с переводом
+    tts = gTTS(translated_text, lang='en')
+    audio_file = f"audio_{message.message_id}.mp3"
+    tts.save(audio_file)
+
+    # Отправка переведенного текста и голосового сообщения
+    await message.answer(translated_text)
+    await message.answer_voice(voice=open(audio_file, 'rb'))
+
+    # Удаление временного аудиофайла
+    os.remove(audio_file)
+
 
 async def main():
     await dp.start_polling(bot)
